@@ -92,13 +92,7 @@ def playfair_decrypt(matrix, ciphertext):
 
 
 def create_key_matrix(key):
-    """
-    Membuat matriks kunci 3x3 dari string kunci.
-    Kunci harus memiliki panjang minimal 9 karakter yang diubah menjadi angka (0-25).
-    """
     key = key.lower()
-
-    # Mengubah karakter kunci menjadi nilai numerik A=0, B=1, ..., Z=25
     key_matrix = [[ord(key[i]) % 97 for i in range(3)],
                   [ord(key[i + 3]) % 97 for i in range(3)],
                   [ord(key[i + 6]) % 97 for i in range(3)]]
@@ -106,30 +100,18 @@ def create_key_matrix(key):
     return np.array(key_matrix)
 
 def text_to_vector(text):
-    """
-    Mengubah teks menjadi vektor numerik.
-    Setiap huruf dikonversi menjadi angka berdasarkan posisinya dalam alfabet (A=0, ..., Z=25).
-    """
     text = text.lower()
     vector = [ord(char) % 97 for char in text if char.isalpha()]
-
-    # Tambah padding jika panjang teks tidak habis dibagi 3
     while len(vector) % 3 != 0:
-        vector.append(0)  # Padding dengan 'A' (0)
+        vector.append(0)
 
     return np.array(vector).reshape(-1, 3)
 
 def vector_to_text(vector):
-    """
-    Mengubah vektor numerik kembali menjadi teks huruf.
-    """
     text = ''.join(chr(int(num) + 97) for num in vector.flatten())
     return text
 
 def find_mod_inverse(matrix):
-    """
-    Mencari invers matriks (mod 26) menggunakan determinan dan adjoin.
-    """
     determinant = int(np.round(np.linalg.det(matrix)))
     determinant_mod_inv = mod_inverse(determinant, 26)
 
@@ -140,9 +122,6 @@ def find_mod_inverse(matrix):
     return matrix_mod_inv
 
 def mod_inverse(a, m):
-    """
-    Mencari invers a (mod m) menggunakan Extended Euclidean Algorithm.
-    """
     a = a % m
     for x in range(1, m):
         if (a * x) % m == 1:
@@ -150,26 +129,19 @@ def mod_inverse(a, m):
     return None
 
 def encrypt_hill(message, key):
-    """
-    Enkripsi teks menggunakan Hill Cipher.
-    """
     if len(key) < 9:
         raise ValueError("Kunci harus memiliki panjang minimal 9 karakter.")
 
     key_matrix = create_key_matrix(key[:9])
     vector = text_to_vector(message)
-    encrypted_vector = np.dot(vector, key_matrix) % 26  # Mod 26 untuk alfabet A-Z
+    encrypted_vector = np.dot(vector, key_matrix) % 26
     encrypted_text = vector_to_text(encrypted_vector)
     return encrypted_text.upper()
 
 def decrypt_hill(cipher_text, key):
-    """
-    Dekripsi teks yang telah dienkripsi menggunakan Hill Cipher.
-    """
     key_matrix = create_key_matrix(key[:9])
     vector = text_to_vector(cipher_text)
 
-    # Cari invers kunci matriks (mod 26)
     key_matrix_inv = find_mod_inverse(key_matrix)
 
     if key_matrix_inv is None:
