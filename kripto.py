@@ -1,4 +1,5 @@
 import streamlit as st
+import numpy as np
 import string
 
 def vigenere_encrypt(text, key):
@@ -89,49 +90,94 @@ def playfair_decrypt(matrix, ciphertext):
             plaintext.append(matrix[row1][col2] + matrix[row2][col1])
     return ''.join(plaintext)
 
-def hill_encrypt(text, key):
-    text = text.upper().replace(" ", "")
 
-    if len(text) % 2 != 0:
-        st.error('Tolong masukkan kata yang jumlah hurufnya ganjil')
+def create_key_matrix(key):
+    """
+    Membuat matriks kunci 3x3 dari string kunci.
+    Kunci harus memiliki panjang minimal 9 karakter yang diubah menjadi angka (0-25).
+    """
+    key = key.lower()
 
-    text_vector = [ord(char) - ord('A') for char in text]
+    # Mengubah karakter kunci menjadi nilai numerik A=0, B=1, ..., Z=25
+    key_matrix = [[ord(key[i]) % 97 for i in range(3)],
+                  [ord(key[i + 3]) % 97 for i in range(3)],
+                  [ord(key[i + 6]) % 97 for i in range(3)]]
 
-    result_text = ""
-    for i in range(0, len(text_vector), 2):
-        x1, x2 = text_vector[i], text_vector[i + 1]
+    return np.array(key_matrix)
 
-        y1 = (x1 * key[0] + x2 * key[1]) % 26
-        y2 = (x1 * key[2] + x2 * key[3]) % 26
+def text_to_vector(text):
+    """
+    Mengubah teks menjadi vektor numerik.
+    Setiap huruf dikonversi menjadi angka berdasarkan posisinya dalam alfabet (A=0, ..., Z=25).
+    """
+    text = text.lower()
+    vector = [ord(char) % 97 for char in text if char.isalpha()]
 
-        result_text += chr(y1 + ord('A')) + chr(y2 + ord('A'))
+    # Tambah padding jika panjang teks tidak habis dibagi 3
+    while len(vector) % 3 != 0:
+        vector.append(0)  # Padding dengan 'A' (0)
 
-    return result_text
+    return np.array(vector).reshape(-1, 3)
 
+def vector_to_text(vector):
+    """
+    Mengubah vektor numerik kembali menjadi teks huruf.
+    """
+    text = ''.join(chr(int(num) + 97) for num in vector.flatten())
+    return text
 
-def hill_decrypt(ciphertext, key):
-    ciphertext = ciphertext.upper().replace(" ", "")
+def find_mod_inverse(matrix):
+    """
+    Mencari invers matriks (mod 26) menggunakan determinan dan adjoin.
+    """
+    determinant = int(np.round(np.linalg.det(matrix)))
+    determinant_mod_inv = mod_inverse(determinant, 26)
 
-    ciphertext_vector = [ord(char) - ord('A') for char in ciphertext]
+    if determinant_mod_inv is None:
+        return None
 
-    det = (key[0] * key[3] - key[1] * key[2]) % 26
-    inv_det = pow(det, -1, 26)
+    matrix_mod_inv = (determinant_mod_inv * np.round(determinant * np.linalg.inv(matrix)).astype(int)) % 26
+    return matrix_mod_inv
 
-    adj_matrix = [key[3], -key[1], -key[2], key[0]]
-    adj_matrix = [num % 26 for num in adj_matrix]
+def mod_inverse(a, m):
+    """
+    Mencari invers a (mod m) menggunakan Extended Euclidean Algorithm.
+    """
+    a = a % m
+    for x in range(1, m):
+        if (a * x) % m == 1:
+            return x
+    return None
 
-    inv_key = [(inv_det * num) % 26 for num in adj_matrix]
+def encrypt_hill(message, key):
+    """
+    Enkripsi teks menggunakan Hill Cipher.
+    """
+    if len(key) < 9:
+        raise ValueError("Kunci harus memiliki panjang minimal 9 karakter.")
 
-    result_text = ""
-    for i in range(0, len(ciphertext_vector), 2):
-        y1, y2 = ciphertext_vector[i], ciphertext_vector[i + 1]
+    key_matrix = create_key_matrix(key[:9])
+    vector = text_to_vector(message)
+    encrypted_vector = np.dot(vector, key_matrix) % 26  # Mod 26 untuk alfabet A-Z
+    encrypted_text = vector_to_text(encrypted_vector)
+    return encrypted_text.upper()
 
-        x1 = (y1 * inv_key[0] + y2 * inv_key[1]) % 26
-        x2 = (y1 * inv_key[2] + y2 * inv_key[3]) % 26
+def decrypt_hill(cipher_text, key):
+    """
+    Dekripsi teks yang telah dienkripsi menggunakan Hill Cipher.
+    """
+    key_matrix = create_key_matrix(key[:9])
+    vector = text_to_vector(cipher_text)
 
-        result_text += chr(x1 + ord('A')) + chr(x2 + ord('A'))
+    # Cari invers kunci matriks (mod 26)
+    key_matrix_inv = find_mod_inverse(key_matrix)
 
-    return result_text
+    if key_matrix_inv is None:
+        raise ValueError("Kunci matriks tidak memiliki invers modulo 26, dekripsi tidak dapat dilakukan.")
+
+    decrypted_vector = np.dot(vector, key_matrix_inv) % 26
+    decrypted_text = vector_to_text(decrypted_vector)
+    return decrypted_text.upper()
 
 
 st.title('Cipher Implementation')
@@ -180,21 +226,15 @@ elif cipher_option == 'Playfair Cipher':
 elif cipher_option == 'Hill Cipher':
     st.subheader('Hill Cipher')
     input_text = st.text_input('Input Text')
-    key = st.text_input('Enter 4 numbers for key matrix (space-separated)', value='5 17 8 3')
+    key = st.text_input('Key')
+    if st.button('Encrypt'):
+        st.session_state['encrypted_text'] = encrypt_hill(input_text, key)
+        st.write('Encrypted Text:', st.session_state['encrypted_text'])
 
-    try:
-        key_matrix = list(map(int, key.split()))
-        if len(key_matrix) == 4:
-            if st.button('Encrypt'):
-                st.session_state['encrypted_text'] = hill_encrypt(input_text, key_matrix)
-                st.write('Encrypted Text:', st.session_state['encrypted_text'])
-            if st.button('Decrypt'):
-                if st.session_state['encrypted_text']:  # Check if encrypted text is available
-                    decrypted_text = hill_decrypt(st.session_state['encrypted_text'], key_matrix)
-                    st.write('Decrypted Text:', decrypted_text)
-                else:
-                    st.write('Teks belum dienkripsi')
+    if st.button('Decrypt'):
+        if st.session_state['encrypted_text']:  # Check if encrypted text is available
+            decrypted_text = decrypt_hill(st.session_state['encrypted_text'], key)
+            st.write('Decrypted Text:', decrypted_text)
         else:
-            st.error('Key must contain 4 numbers for 2x2 matrix')
-    except ValueError:
-        st.error('Invalid key. Please enter integers.')
+            st.write('Teks belum dienkripsi')
+
