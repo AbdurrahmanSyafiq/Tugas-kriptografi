@@ -75,7 +75,7 @@ Untuk kasus collaborative filtering tidak ada teknik data preparation khusus. Da
 
 ## Modeling
 Sistem rekomendasi yang saya buat dibangun menggunakan dua pendekatan utama: Content-Based Filtering dan Collaborative Filtering.Pada content-based tidak ada algoritma khusus yang digunakan, sedangkan collaborative menggunakan teknik embedding.
-**Content-Based Filtering**
+- **Content-Based Filtering**
 Pendekatan content-based filtering memberikan rekomendasi film berdasarkan kesamaan konten, dalam hal ini genre, dengan film yang telah ditonton atau dinilai tinggi oleh pengguna. Setelah teknik tfidf selesai dilakukan, maka selanjutnya kita menerapkan cosine similarity pada matrix tfidf untuk menghitung kemiripan antara setiap film dalam bentuk matriks cosine similarity, dengan nilai antara 0 hingga 1. Matriks ini menunjukkan seberapa mirip setiap film satu sama lain berdasarkan genre.
 Matriks ini kemudian dikonversi menjadi DataFrame untuk memudahkan pengindeksan.
 Setelah proses tersebut selesai, kita membuat function recommend_movies_by_title untuk mencari rekomendasi film berdasarkan judul film yang diberikan (movie_title). Fungsi ini pertama-tama menemukan indeks film (movie_idx) dalam merged_df_sample yang sesuai dengan movie_title.
@@ -93,7 +93,7 @@ Pengujian ditest pada film berjudul jumanji (1995)
 | 2292    | Chronicles of Narnia: The Lion, the Witch and ... |
 | 2545    | Bridge to Terabithia (2007)                       |
 
-**Collaborative filtering**
+- **Collaborative filtering**
 Pendekatan collaborative filtering memberikan rekomendasi berdasarkan pola kesamaan rating antar film. Teknik ini menggunakan teknik embedding dengan metrik RMSE untuk mengidentifikasi film-film yang memiliki pola rating serupa dengan film yang disukai pengguna. Proses modeling pada kasus collaborative filtering dimulai dengan membuat class recommenderNet yang akan digunakan untuk membangun arsitektur model rekomendasi yang terdiri dari lapisan embedding untuk pengguna dan film. Dalam class tersebut mendefinisikan dua jenis embedding:
 Embedding Pengguna (user_embedding): Mewakili setiap pengguna dalam vektor berdimensi embedding_size.
 Embedding Film (movie_embedding): Mewakili setiap film dalam vektor berdimensi embedding_size.
@@ -145,7 +145,8 @@ Pada kasus content based filtering, hasil yang didapatkan adalah
 | Bridge to Terabithia (2007)                                  | 1.0               |
 
 
-Bisa dilihat hasil dari cosine similarity pada top recomendation menghasilkan output 1.0. Hal ini dikarenakan film-film yang direkomendasikan juga dari genre yang sama persis dengan film jumanji 1995.
+Bisa dilihat hasil dari cosine similarity pada top recomendation menghasilkan output 1.0. Hal ini dikarenakan film-film yang direkomendasikan juga dari genre yang sama persis dengan film jumanji 1995
+
 Pada kasus collaborative filtering, setelah melakukan pelatihan dengan epoch 5, batch size 64, dan learning rate 0.001, menggunakan optimizer adam dan function loss BinaryCrossentropy menghasilkan hasil yang cukup baik dengan RMSE di angka **0.2730**
 Namun teknik collaborative filtering memiliki keunggulan daripada content based yaitu:
 - **Mengenali Pola Preferensi yang Kompleks**: Collaborative Filtering mampu mengenali pola preferensi dari perilaku pengguna lainnya. Dalam contoh rekomendasi di atas, item yang sering diberi rating tinggi oleh pengguna yang memiliki preferensi serupa dihitung kesamaannya berdasarkan skor korelasi. Metode ini memungkinkan sistem untuk menangkap kesamaan preferensi yang kompleks antar pengguna yang mungkin tidak dapat ditangkap dengan data genre atau atribut film lain yang terbatas.
